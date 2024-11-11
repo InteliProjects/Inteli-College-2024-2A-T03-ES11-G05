@@ -1,0 +1,65 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data
+    networks:
+      - default
+
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    container_name: clickhouse
+    platform: linux/amd64/v8
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./clickhouse-users.xml:/etc/clickhouse-server/users.xml
+    restart: always
+    networks:
+      - default
+
+  uvicorn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uvicorn
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/src
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: password
+    command: [ "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "5500", "--reload" ]
+    networks:
+      - default
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+    environment:
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: password
+    command: [ "streamlit", "run", "src/stream_lit.py", "--server.port=8501" ]
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge

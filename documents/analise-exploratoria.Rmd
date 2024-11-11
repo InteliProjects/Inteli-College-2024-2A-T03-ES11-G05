@@ -1,0 +1,418 @@
+---
+title: "Análise de Dados para CosmeticCo"
+author: "Pedro Hagge Baptista"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(corrplot)
+library(FactoMineR)
+library(factoextra)
+```
+
+# Introdução
+
+Este documento apresenta uma análise detalhada dos dados de vendas, estoque e desempenho dos vendedores da CosmeticCo. Utilizando ferramentas estatísticas e visuais, nosso objetivo é extrair insights que otimizem as operações e melhorem a eficiência das vendas.
+
+## Características e Justificativas de Estruturação dos Dados
+
+A estruturação dos dados é um passo crucial em qualquer projeto de análise de dados, pois impacta diretamente a qualidade e a eficácia das análises subsequentes. No projeto da CosmeticCo, os dados foram estruturados de maneira a maximizar a coerência, a integridade e a facilidade de interpretação, o que é essencial para gerar insights significativos. A seguir, descrevemos as características dos dados utilizados e as justificativas detalhadas para as escolhas de estruturação adotadas.
+
+
+# 1. Carregamento e Preparação dos Dados
+
+## Carregamento dos Dados
+
+```{r load-data}
+# Carregar os conjuntos de dados
+ano_2021 <- read.csv("/home/rstudio/datasets/2021.csv")
+store_final <- read.csv("/home/rstudio/datasets/store_final.csv")
+target_store_final <- read.csv("/home/rstudio/datasets/target_store_final.csv")
+sku_status_dataset <- read.csv2("/home/rstudio/datasets/sku_status_dataset.csv")
+targets_salesperson_final <- read.csv("/home/rstudio/datasets/targets_salesperson_final.csv")
+sku_price <- read.csv("/home/rstudio/datasets/sku_price.csv")
+sku_dataset <- read.csv2("/home/rstudio/datasets/sku_dataset.csv")
+sku_cost <- read.csv("/home/rstudio/datasets/sku_cost.csv")
+employee_final <- read.csv("/home/rstudio/datasets/employee_final.csv")
+```
+
+## Visualização das Primeiras Linhas
+
+```{r view-data}
+# Mostrar as primeiras linhas de cada conjunto de dados para uma verificação inicial
+head(ano_2021)
+head(store_final)
+head(target_store_final)
+head(sku_status_dataset)
+head(targets_salesperson_final)
+head(sku_price)
+head(sku_dataset)
+head(sku_cost)
+head(employee_final)
+```
+
+## Verificação da Estrutura dos Dados
+
+```{r structure-data}
+# Verificar a estrutura dos conjuntos de dados para entender os tipos de dados e valores ausentes
+str(ano_2021)
+str(store_final)
+str(target_store_final)
+str(sku_status_dataset)
+str(targets_salesperson_final)
+str(sku_price)
+str(sku_dataset)
+str(sku_cost)
+str(employee_final)
+```
+
+# 2. Resumo Estatístico e Descrição dos Dados
+
+## Resumo Estatístico
+
+```{r summary-stats}
+# Obter um resumo estatístico para entender distribuições, médias e outliers
+summary(ano_2021)
+summary(store_final)
+summary(target_store_final)
+summary(sku_status_dataset)
+summary(targets_salesperson_final)
+summary(sku_price)
+summary(sku_dataset)
+summary(sku_cost)
+summary(employee_final)
+```
+
+## Descrição das Variáveis
+
+As variáveis contidas nos conjuntos de dados incluem dados de transação, informações do produto, detalhes de custos, preços, e dados demográficos de empregados, como ilustrado nas descrições acima.
+
+### Tabela: `ano_2021`
+
+| Coluna          | Tipo       | Descrição                              |
+|-----------------|------------|----------------------------------------|
+| data            | character  | Data da transação                      |
+| cod_vendedor    | numérico   | Código identificador do vendedor       |
+| cod_loja        | character  | Código identificador da loja           |
+| cod_transacao   | character  | Código identificador da transação      |
+| quantidade      | numérico   | Quantidade de itens vendidos           |
+| cod_prod        | numérico   | Código identificador do produto        |
+| preco           | numérico   | Preço do produto                        |
+
+### Tabela: `store_final`
+
+| Coluna           | Tipo       | Descrição                                |
+|------------------|------------|------------------------------------------|
+| nome_loja        | character  | Nome da loja                             |
+| regiao           | character  | Região onde a loja está localizada       |
+| diretoria        | character  | Diretoria responsável pela loja          |
+| data_inauguracao | character  | Data de inauguração da loja              |
+
+### Tabela: `target_store_final`
+
+| Coluna       | Tipo       | Descrição                          |
+|--------------|------------|------------------------------------|
+| month        | character  | Mês da meta de vendas              |
+| store_id     | character  | Código identificador da loja       |
+| sales_target | numérico   | Meta de vendas para a loja         |
+
+### Tabela: `sku_status_dataset`
+
+| Coluna     | Tipo       | Descrição                                      |
+|------------|------------|------------------------------------------------|
+| cod_prod   | numérico   | Código identificador do produto                |
+| data_inicio| character  | Data de início da validade do status do produto|
+| data_fim   | character  | Data de fim da validade do status do produto   |
+
+### Tabela: `targets_salesperson_final`
+
+| Coluna       | Tipo       | Descrição                          |
+|--------------|------------|------------------------------------|
+| id_employee  | numérico   | Código identificador do funcionário|
+| sales_target | numérico   | Meta de vendas para o funcionário  |
+| month        | character  | Mês da meta de vendas              |
+
+### Tabela: `sku_price`
+
+| Coluna      | Tipo       | Descrição                                      |
+|-------------|------------|------------------------------------------------|
+| cod_prod    | numérico   | Código identificador do produto                |
+| data_inicio | character  | Data de início da validade do preço do produto |
+| data_fim    | character  | Data de fim da validade do preço do produto    |
+| preco       | numérico   | Preço do produto                               |
+
+### Tabela: `sku_dataset`
+
+| Coluna           | Tipo       | Descrição                                 |
+|------------------|------------|-------------------------------------------|
+| cod_prod         | numérico   | Código identificador do produto           |
+| nome_abrev       | character  | Nome abreviado do produto                 |
+| nome_completo    | character  | Nome completo do produto                  |
+| descricao        | character  | Descrição do produto                      |
+| categoria        | character  | Categoria do produto                      |
+| sub_categoria    | character  | Subcategoria do produto                   |
+| marca            | character  | Marca do produto                          |
+| conteudo_valor   | character  | Valor do conteúdo do produto              |
+| conteudo_medida  | character  | Medida do conteúdo do produto             |
+
+### Tabela: `sku_cost`
+
+| Coluna      | Tipo       | Descrição                                  |
+|-------------|------------|--------------------------------------------|
+| cod_prod    | numérico   | Código identificador do produto            |
+| data_inicio | character  | Data de início da validade do custo do produto |
+| data_fim    | character  | Data de fim da validade do custo do produto|
+| custo       | numérico   | Custo do produto                           |
+
+### Tabela: `employee_final`
+
+| Coluna       | Tipo       | Descrição                                 |
+|--------------|------------|-------------------------------------------|
+| id_employee  | numérico   | Código identificador do funcionário       |
+| name         | character  | Nome do funcionário                       |
+| surname      | character  | Sobrenome do funcionário                  |
+| cpf          | character  | CPF do funcionário                        |
+| status       | character  | Status do funcionário (ativo/inativo)     |
+| role         | character  | Função/cargo do funcionário               |
+| initial_date | character  | Data de início do contrato do funcionário |
+| end_date     | character  | Data de término do contrato do funcionário|
+| store_id     | character  | Código identificador da loja onde o funcionário trabalha |
+
+### Características dos Dados
+
+#### Dados Transacionais (Tabela `ano_2021`)
+
+**Descrição**: Esta tabela contém registros detalhados das transações realizadas ao longo do ano de 2021, incluindo informações sobre data, código do vendedor, código da loja, código da transação, quantidade de itens vendidos, código do produto e preço.
+
+**Justificativa de Estruturação**:
+- **Normalização e Relacionamento**: A tabela foi estruturada de forma a manter um alto grau de normalização, evitando redundâncias e facilitando a integração com outras tabelas, como `store_final` e `sku_dataset`. Cada transação é identificada por um código único (`cod_transacao`), permitindo rastrear e analisar individualmente as vendas e associá-las facilmente a vendedores, lojas e produtos.
+- **Granularidade**: A escolha de manter cada linha representando uma única transação permite uma análise granular do comportamento de vendas, facilitando a identificação de padrões diários, mensais e anuais, além de permitir a segmentação por vendedor e loja.
+
+#### Dados de Lojas (Tabela `store_final`)
+
+**Descrição**: Contém informações sobre as lojas da CosmeticCo, incluindo nome da loja, região, diretoria responsável e data de inauguração.
+
+**Justificativa de Estruturação**:
+- **Regionalização**: A inclusão da região e diretoria foi estratégica para permitir a análise de desempenho por localização geográfica, facilitando a identificação de tendências regionais e possibilitando ajustes estratégicos na alocação de recursos e metas.
+- **Histórico de Operações**: A data de inauguração foi mantida para analisar o impacto do tempo de operação no desempenho das lojas, permitindo avaliar como as lojas recém-inauguradas se comparam com as mais estabelecidas.
+
+#### Metas de Vendas (Tabelas `target_store_final` e `targets_salesperson_final`)
+
+**Descrição**: Essas tabelas registram as metas de vendas atribuídas a cada loja e a cada vendedor por mês.
+
+**Justificativa de Estruturação**:
+- **Temporalidade**: A inclusão de uma dimensão temporal (`month`) é crucial para análises que investigam o desempenho ao longo do tempo, permitindo identificar sazonalidades e a eficácia de campanhas de vendas mensais.
+- **Hierarquia**: Manter metas separadas para lojas e vendedores permite uma análise hierárquica do cumprimento de metas, possibilitando avaliações comparativas entre desempenho individual e coletivo.
+
+#### Dados de Produtos (Tabelas `sku_dataset`, `sku_price`, `sku_cost`, e `sku_status_dataset`)
+
+**Descrição**: Essas tabelas oferecem informações detalhadas sobre os produtos, incluindo descrições, categorias, preços, custos e status de disponibilidade.
+
+**Justificativa de Estruturação**:
+- **Modularidade**: Separar as informações de preços, custos e status do produto em tabelas distintas, mas relacionadas, facilita a atualização e a manutenção dos dados, além de permitir análises focadas em aspectos específicos, como variação de preço ao longo do tempo ou impacto do custo nos lucros.
+- **Relacionamento com Transações**: A estrutura modular também facilita o cruzamento dos dados de produto com as transações registradas em `ano_2021`, permitindo análises detalhadas de margem de lucro, elasticidade de preço, e eficiência de inventário.
+
+#### Dados de Funcionários (Tabela `employee_final`)
+
+**Descrição**: Contém informações sobre os funcionários, incluindo identificador, nome, CPF, status (ativo/inativo), função, datas de início e término do contrato, e loja de trabalho.
+
+**Justificativa de Estruturação**:
+- **Gestão de Recursos Humanos**: A manutenção dos dados de status e períodos de contrato permite uma análise dinâmica da força de trabalho, incluindo a avaliação de rotatividade e sua correlação com o desempenho de vendas.
+- **Análise de Produtividade**: A relação entre funcionários e lojas (`store_id`) foi estruturada para permitir a análise da distribuição e produtividade dos vendedores em diferentes regiões e períodos.
+
+
+# Gerenciamento e Proteção de Dados do Parceiro
+
+No contexto de um projeto de governança de dados, é essencial estabelecer procedimentos claros para o manejo e a proteção dos dados do parceiro, especialmente quando esses dados incluem informações sensíveis, como nomes e CPF. A abordagem para lidar com esses dados deve assegurar a conformidade com as políticas de proteção de dados e promover a segurança e a privacidade das informações.
+
+## 1. Controle de Acesso
+Implementaremos políticas de controle de acesso baseadas no princípio do menor privilégio, garantindo que apenas usuários autorizados e com a necessidade operacional possam acessar dados específicos. O gerenciamento de identidades e acessos será realizado através de sistemas de autenticação e autorização centralizados, com logs de auditoria para monitoramento contínuo.
+
+## 2. Criptografia
+Além disso, deve-se garantir que todos os dados do parceiro sejam armazenados e processados de forma segura. Isso inclui o uso de *criptografia* para proteger as informações tanto em trânsito quanto em repouso. A criptografia ajuda a prevenir acessos não autorizados e garante que os dados permaneçam confidenciais, mesmo se houver uma violação de segurança.
+
+## 3. Tratamento de Dados
+O tratamento dos dados seguirá as melhores práticas de anonimização e pseudonimização, especialmente em situações onde dados pessoais ou sensíveis são manipulados. Isso garantirá a conformidade com as regulamentações de proteção de dados, como a LGPD, minimizando riscos de exposição e uso indevido.
+
+## 4. Monitoramento
+Por fim, deve-se realizar *auditorias e revisões regulares* para garantir que as práticas de proteção de dados estejam sendo seguidas conforme o planejado e para identificar possíveis áreas de melhoria. Essas revisões ajudam a assegurar que os procedimentos de proteção de dados sejam eficazes e adaptáveis a novas ameaças ou mudanças nas regulamentações.
+
+## Integração dos Dados
+
+A integração entre as diferentes tabelas foi realizada utilizando chaves primárias e estrangeiras, garantindo a coerência dos dados e facilitando a execução de consultas complexas que cruzam informações de várias fontes. A estruturação também foi pensada para suportar tanto análises univariadas quanto bivariadas e multivariadas, permitindo uma visão holística do desempenho da empresa.
+
+### Escolha de Chaves e Relacionamentos
+
+- **Chaves Primárias**: Cada tabela possui uma chave primária clara (como `cod_prod` para produtos e `id_employee` para funcionários), garantindo que os registros sejam únicos e permitindo que outras tabelas referenciem esses dados de maneira precisa.
+- **Relacionamentos**: Relacionamentos foram estabelecidos entre tabelas relevantes (por exemplo, `sku_price` e `sku_cost` relacionadas pelo `cod_prod`), permitindo análises que exploram múltiplas dimensões, como custo versus preço.
+
+# 3. Análise Univariada
+
+## Visualização das Distribuições
+
+Este segmento explora a distribuição individual de variáveis chave, como as metas de vendas e os custos dos produtos. Histogramas e gráficos de densidade são utilizados para visualizar como essas variáveis estão distribuídas, o que pode ajudar a identificar padrões ou necessidades de ajuste em estratégias de precificação ou estoque.
+
+```{r distribution-plots}
+# Histograma para 'sales_target' de 'target_store_final' para ver a distribuição das metas de vendas nas lojas
+ggplot(target_store_final, aes(x = sales_target)) +
+  geom_histogram(binwidth = 10000, fill = "blue", color = "black") +
+  labs(title = "Distribuição da Meta de Vendas por Loja", x = "Meta de Vendas", y = "Frequência")
+
+# Gráfico de densidade para 'custo' de 'sku_cost' para avaliar a distribuição de custos dos produtos
+ggplot(sku_cost, aes(x = custo)) +
+  geom_density(fill = "red", alpha = 0.5) +
+  labs(title = "Densidade do Custo dos Produtos", x = "Custo", y = "Densidade")
+
+# Gráfico de densidade para 'preco' de 'sku_price' para avaliar a distribuição de preços dos produtos
+ggplot(sku_price, aes(x = preco)) +
+  geom_density(fill = "green", alpha = 0.5) +
+  labs(title = "Densidade do Preço dos Produtos", x = "Preço", y = "Densidade")
+
+# Histograma para 'preco' de 'sku_price' para ver a distribuição dos preços dos produtos
+ggplot(sku_price, aes(x = preco)) +
+  geom_histogram(binwidth = 5, fill = "purple", color = "black") +
+  labs(title = "Distribuição do Preço dos Produtos", x = "Preço", y = "Frequência")
+```
+
+## Identificação de Outliers
+
+A identificação de outliers é crucial para entender extremos que podem distorcer análises ou indicar erros de dados ou oportunidades únicas de mercado.
+
+```{r outlier-detection}
+# Detectar outliers na variável 'custo'
+custo_outliers <- sku_cost %>%
+  filter(custo < quantile(custo, 0.25) - 1.5 * IQR(custo) | custo > quantile(custo, 0.75) + 1.5 * IQR(custo))
+print("Outliers na variável custo dos produtos:")
+print(custo_outliers)
+
+# Detectar outliers na variável 'preco'
+preco_outliers <- sku_price %>%
+  filter(preco < quantile(preco, 0.25) - 1.5 * IQR(preco) | preco > quantile(preco, 0.75) + 1.5 * IQR(preco))
+print("Outliers na variável preço dos produtos:")
+print(preco_outliers)
+```
+
+# 4. Análise Bivariada
+
+## Preparação dos Dados
+
+Antes de analisar as relações bivariadas, é necessário preparar os dados unindo as informações de custo e preço dos produtos com base no código do produto, permitindo uma análise direta de como os custos se relacionam com os preços.
+
+```{r prepare-data}
+# Unir 'sku_price' com 'sku_cost' em 'cod_prod' para analisar custo versus preço
+sku_merged <- sku_price %>%
+  inner_join(sku_cost, by = "cod_prod")
+```
+
+## Visualização de Relações entre Variáveis
+
+Esta análise foca em entender como o custo dos produtos (variável `custo` de `sku_cost`) está relacionado com o preço de venda (variável `preco` de `sku_price`). Utilizamos um gráfico de dispersão para visualizar esta relação, o que pode indicar a margem de lucro ou a estratégia de precificação.
+
+```{r bivariate-analysis}
+# Gráfico de dispersão para explorar a relação entre custo e preço para cada produto
+ggplot(sku_merged, aes(x = custo, y = preco)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  labs(title = "Relação entre Custo e Preço dos Produtos", x = "Custo", y = "Preço")
+
+# Gráfico de barras para explorar a relação entre região da loja e número de funcionários
+ggplot(employee_final, aes(x = store_id, fill = role)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribuição de Funcionários por Loja", x = "ID da Loja", y = "Contagem de Funcionários")
+```
+
+## Análise de Correlação
+
+Para entender melhor a linearidade da relação entre custo e preço, calculamos e visualizamos uma matriz de correlação. Esta etapa pode ajudar a identificar a força e a direção da associação entre as duas variáveis.
+
+```{r correlation-analysis-2}
+# Calcular e exibir a matriz de correlação para 'custo' e 'preco'
+correlation_matrix <- cor(sku_merged[c("custo", "preco")])
+corrplot(correlation_matrix, method = "circle")
+```
+
+```{r correlation-analysis}
+# Calcular e exibir a matriz de correlação para variáveis numéricas selecionadas em 'ano_2021'
+selected_vars <- ano_2021 %>% select(quantidade, preco)
+corr_matrix <- cor(selected_vars)
+corrplot(corr_matrix, method = "circle")
+```
+
+# 5. Análise Multivariada
+
+## Análise de Componentes Principais (PCA)
+
+```{r pca-analysis}
+# Gerar amostra com seed para reprodutibilidade
+set.seed(123)
+ano_2021_sample <- ano_2021 %>% sample_frac(0.05)
+
+# Selecionar as variáveis numéricas e remover NAs
+numeric_vars <- ano_2021_sample %>% 
+  select_if(is.numeric) %>%
+  na.omit()
+
+# Executar PCA
+pca_result <- prcomp(numeric_vars, scale. = TRUE)
+
+# Resumo do PCA
+summary(pca_result)
+
+# Visualizar a variância explicada pelos componentes principais
+fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+
+# Interpretação dos componentes principais
+fviz_pca_var(pca_result, 
+             col.var = "contrib", # Colorir por contribuição aos PCs
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)       # Evitar sobreposição de texto
+```
+
+# 6. Conclusão e Discussão
+
+## Sumário das Descobertas
+
+Nossa análise abrangente dos dados da CosmeticCo revelou várias descobertas chave que podem informar decisões estratégicas futuras e otimização de operações:
+
+1. **Distribuição de Metas de Vendas**:
+   - A distribuição das metas de vendas por loja mostrou variabilidade significativa, indicando que algumas lojas têm metas desproporcionalmente altas em comparação com outras. Isso sugere a necessidade de uma revisão das estratégias de alocação de metas para garantir que elas se alinhem melhor com as capacidades e o histórico de desempenho de cada loja.
+
+2. **Relação Custo e Preço dos Produtos**:
+   - A análise da relação entre custo e preço dos produtos destacou que, enquanto a maioria dos produtos segue uma margem de lucro consistente, existem outliers significativos onde o preço não parece justificar o custo. Isso pode indicar oportunidades para ajustar preços ou revisar acordos com fornecedores para certos itens.
+
+3. **Densidade do Custo e Preço**:
+   - Os gráficos de densidade para custo e preço dos produtos revelaram que a maior concentração de produtos situa-se em faixas de menor custo, mas com uma ampla variação nos preços. Isso sugere que a empresa possui uma estratégia de diferenciação de preços eficaz para produtos de baixo custo, mas pode haver espaço para aumentar a lucratividade nos segmentos de custo mais alto.
+
+4. **Análise de Outliers**:
+   - A identificação de outliers nas variáveis de preço e custo dos produtos ajudou a detectar itens que desviam da norma. Estes produtos podem requerer investigação adicional para entender as razões dos desvios, seja por problemas na cadeia de suprimentos, erros de etiquetagem de preços, ou demanda inesperada.
+
+## Discussão sobre Limitações e Possíveis Melhorias
+
+### Limitações:
+
+- **Granularidade dos Dados**:
+  - Alguns dos insights poderiam ser refinados com dados mais granulares, especialmente relacionados ao comportamento de compra dos clientes e à performance de vendas em níveis mais desagregados, como por categoria de produto ou segmentos de cliente.
+  
+- **Dados Históricos**:
+  - A análise foi limitada ao conjunto de dados do ano em curso. Dados históricos poderiam permitir uma compreensão melhor das tendências ao longo do tempo e ajudar na previsão e no planejamento estratégico. Sendo assim, eu acho que seria extremamente válido a efetuação de uma análise com a junção dos datasets de todos os anos, no caso de 2018 até 2024.
+
+### Melhorias Propostas:
+
+- **Coleta de Dados Adicionais**:
+  - Expandir a coleta de dados para incluir informações adicionais sobre clientes e transações ao nível de SKU para permitir análises mais profundas sobre preferências de clientes e elasticidade de preços.
+  
+- **Ferramentas Analíticas Avançadas**:
+  - Implementar ferramentas analíticas avançadas, como machine learning, para modelar a elasticidade de preço e otimizar estratégias de pricing em tempo real baseado em demanda e competição de mercado.
+
+- **Revisões Periódicas de Metas**:
+  - Estabelecer um processo de revisão periódica das metas de vendas baseado em desempenho passado, potencial de mercado, e mudanças econômicas para assegurar que as metas são desafiadoras, mas realistas.
+
+Essas descobertas e recomendações oferecem à CosmeticCo uma base sólida para aprimoramento contínuo e tomada de decisão informada. A implementação das melhorias propostas e a atenção às limitações identificadas facilitarão a otimização das operações e o aumento sustentável da lucratividade.

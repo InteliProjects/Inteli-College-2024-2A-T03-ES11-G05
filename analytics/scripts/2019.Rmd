@@ -1,0 +1,376 @@
+---
+title: "análise-exploratária-2019"
+output:
+  html_document:
+    df_print: paged
+date: "2024-08-09"
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(dplyr) 
+library(tibble) 
+library(ggplot2) 
+library(corrplot)
+library(FactoMineR) 
+library(factoextra)
+```
+
+# Carregamento e Preparação dos Dados
+
+```{r}
+ano_2019 <-read.csv("2019.csv") 
+store_final <-read.csv("store_final.csv") 
+target_store_final <-read.csv("target_store_final.csv")
+sku_status_dataset <-read.csv2("sku_status_dataset.csv") 
+targets_salesperson_final <-read.csv("targets_salesperson_final.csv")
+sku_price <-read.csv("sku_price.csv") 
+sku_dataset <-read.csv2("sku_dataset.csv")
+sku_cost <-read.csv("sku_cost.csv")
+employee_final <-read.csv("employee_final.csv")
+
+```
+
+# Descrição das Variáveis
+
+Ano_2019 - data: Data da transação (Tipo: character) - cod_vendedor:
+Código identificador do vendedor (Tipo: numérico) - cod_loja: Código
+identificador da loja (Tipo: character) - cod_transacao: Código
+identificador da transação (Tipo: character) - quantidade: Quantidade de
+itens vendidos (Tipo: numérico) - cod_prod: Código identificador do
+produto (Tipo: numérico) - preco: Preço do produto (Tipo: numérico)
+
+Store_final - nome_loja: Nome da loja (Tipo: character) - regiao: Região
+onde a loja está localizada (Tipo: character) - diretoria: Diretoria
+responsável pela loja (Tipo: character) - data_inauguracao: Data de
+inauguração da loja (Tipo: character)
+
+Target_store_final - month: Mês da meta de vendas (Tipo: character) -
+store_id: Código identificador da loja (Tipo: character) - sales_target:
+Meta de vendas para a loja (Tipo: numérico)
+
+Sku_status_dataset - cod_prod: Código identificador do produto (Tipo:
+numérico) - data_inicio: Data de início da validade do status do produto
+(Tipo: character) - data_fim: Data de fim da validade do status do
+produto (Tipo: character)
+
+Targets_salesperson_final - id_employee: Código identificador do
+funcionário (Tipo: numérico) - sales_target: Meta de vendas para o
+funcionário (Tipo: numérico) - month: Mês da meta de vendas (Tipo:
+character)
+
+Sku_price - cod_prod: Código identificador do produto (Tipo: numérico) -
+data_inicio: Data de início da validade do preço do produto (Tipo:
+character) - data_fim: Data de fim da validade do preço do produto
+(Tipo: character) - preco: Preço do produto (Tipo: numérico)
+
+Sku_dataset - cod_prod: Código identificador do produto (Tipo:
+numérico) - nome_abrev: Nome abreviado do produto (Tipo: character) -
+nome_completo: Nome completo do produto (Tipo: character) - descricao:
+Descrição do produto (Tipo: character) - categoria: Categoria do produto
+(Tipo: character) - sub_categoria: Subcategoria do produto (Tipo:
+character) - marca: Marca do produto (Tipo: character) - conteudo_valor:
+Valor do conteúdo do produto (Tipo: character) - conteudo_medida: Medida
+do conteúdo do produto (Tipo: character)
+
+Sku_cost - cod_prod: Código identificador do produto (Tipo: numérico)
+-data_inicio: Data de início da validade do custo do produto (Tipo:
+character) - data_fim: Data de fim da validade do custo do produto
+(Tipo: character) - custo: Custo do produto (Tipo: numérico)
+
+Employee_final - id_employe: Código identificador do funcionário (Tipo:
+numérico) - name: Nome do funcionário (Tipo: character) - surname:
+Sobrenome do funcionário (Tipo: character) - cpf: CPF do funcionário
+(Tipo: character) - status: Status do funcionário (ativo/inativo) (Tipo:
+character) - role: Função/cargo do funcionário (Tipo: character) -
+initial_date: Data de início do contrato do funcionário (Tipo:
+character) - end_date: Data de término do contrato do funcionário (Tipo:
+character) - store_id: Código identificador da loja onde o funcionário
+trabalha (Tipo: character)
+
+# Melhor visualização com tibble
+
+```{r}
+ano_2019 <- as_tibble(ano_2019)
+store_final <- as_tibble(store_final)
+target_store_final <- as_tibble(target_store_final)
+sku_status_dataset <- as_tibble(sku_status_dataset)
+targets_salesperson_final <- as_tibble(targets_salesperson_final)
+sku_price <- as_tibble(sku_price)
+sku_dataset <- as_tibble(sku_dataset)
+sku_cost <- as_tibble(sku_cost)
+employee_final <- as_tibble(employee_final)
+```
+
+# Exibir as primeiras linhas dos dados com melhor visualização
+
+```{r}
+print(head(ano_2019))
+print(head(store_final))
+print(head(target_store_final))
+print(head(sku_status_dataset))
+print(head(targets_salesperson_final))
+print(head(sku_price))
+print(head(sku_dataset))
+print(head(sku_cost))
+print(head(employee_final))
+
+```
+
+# Verificar a estrutura dos dados
+
+```{r}
+str(ano_2019)
+str(store_final)
+str(target_store_final)
+str(sku_status_dataset)
+str(targets_salesperson_final)
+str(sku_price)
+str(sku_dataset)
+str(sku_cost)
+str(employee_final)
+```
+
+# Resumo estatístico das variáveis
+
+```{r}
+summary(ano_2019)
+summary(store_final)
+summary(target_store_final)
+summary(sku_status_dataset)
+summary(targets_salesperson_final)
+summary(sku_price)
+summary(sku_dataset)
+summary(sku_cost)
+summary(employee_final)
+```
+
+# Histograma para a variável quantidade
+
+```{r}
+ggplot(ano_2019, aes(x = quantidade)) + geom_histogram(binwidth = 1,
+fill = "blue", color = "black") + labs(title = "Distribuição de
+Quantidade", x = "Quantidade", y = "Frequência")
+
+```
+
+# Gráfico de densidade para a variável preço
+
+```{r}
+ggplot(ano_2019, aes(x = preco)) + geom_density(fill = "green", alpha =
+0.5) + labs(title = "Densidade do Preço", x = "Preço", y = "Densidade")
+```
+
+# Gráfico de barras para a variável regiao
+
+```{r}
+ggplot(store_final, aes(x = regiao)) + geom_bar(fill = "purple") +
+labs(title = "Distribuição de Regiões", x = "Região", y = "Contagem")
+
+```
+
+# Gráfico de barras de venda por região
+
+```{r}
+vendas_regiao <- ano_2019 %>%
+  left_join(store_final, by = c("cod_loja" = "nome_loja")) %>%
+  group_by(regiao) %>%
+  summarise(total_vendas = sum(quantidade * preco, na.rm = TRUE))
+
+ggplot(vendas_regiao, aes(x = regiao, y = total_vendas)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total de Vendas por Região", x = "Região", y = "Total de Vendas") +
+  theme_minimal()
+```
+
+# Gráfico de densidade para a variável custo
+
+```{r}
+ggplot(sku_cost, aes(x = custo)) + geom_density(fill = "green", alpha =
+0.5) + labs(title = "Densidade do Custo dos Produtos", x = "Custo", y =
+"Densidade")
+
+```
+
+# Correlação entre Preço e Custo dos Produtos
+
+```{r}
+preco_custo <- sku_price %>%
+  inner_join(sku_cost, by = "cod_prod") %>%
+  group_by(cod_prod) %>%
+  summarise(preco_medio = mean(preco, na.rm = TRUE), custo_medio = mean(custo, na.rm = TRUE))
+
+ggplot(preco_custo, aes(x = custo_medio, y = preco_medio)) +
+  geom_point(color = "darkblue") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Correlação entre Preço e Custo dos Produtos", x = "Custo Médio", y = "Preço Médio") +
+  theme_minimal()
+
+cor(preco_custo$preco_medio, preco_custo$custo_medio, use = "complete.obs")
+
+```
+
+# Histograma para a variável sales_target
+
+```{r}
+ggplot(targets_salesperson_final, aes(x = sales_target)) +
+geom_histogram(binwidth = 5000, fill = "red", color = "black") +
+labs(title = "Distribuição da Meta de Vendas dos Funcionários", x =
+"Meta de Vendas", y = "Frequência")
+```
+
+# Boxplot para a variável role
+
+```{r}
+ggplot(employee_final, aes(x = role)) + geom_bar(fill = "blue") +
+labs(title = "Distribuição de Funções/Cargos", x = "Função/Cargo", y =
+"Contagem")
+```
+
+```{r}
+desempenho_vendedor <- targets_salesperson_final %>%
+  left_join(ano_2019 %>%
+              group_by(cod_vendedor) %>%
+              summarise(vendas_totais = sum(quantidade * preco, na.rm = TRUE)),
+            by = c("id_employee" = "cod_vendedor"))
+
+ggplot(desempenho_vendedor, aes(x = factor(id_employee))) +
+  geom_bar(aes(y = vendas_totais), stat = "identity", fill = "blue", alpha = 0.6) +
+  geom_point(aes(y = sales_target), color = "red", size = 3) +
+  labs(title = "Desempenho de Vendas por Funcionário", x = "ID do Funcionário", y = "Valor em Vendas") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+# Análise Temporal das Vendas
+
+```{r}
+ano_2019$data <- as.Date(ano_2019$data)
+vendas_mes <- ano_2019 %>%
+  mutate(mes_ano = format(data, "%Y-%m")) %>%
+  group_by(mes_ano) %>%
+  summarise(total_vendas = sum(quantidade * preco, na.rm = TRUE))
+
+ggplot(vendas_mes, aes(x = mes_ano, y = total_vendas)) +
+  geom_line(color = "purple") +
+  geom_point(color = "purple") +
+  labs(title = "Vendas ao Longo do Tempo", x = "Mês/Ano", y = "Total de Vendas") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+# Boxplot para identificar outliers na variável quantidade
+
+```{r}
+ggplot(ano_2019, aes(y = quantidade)) + geom_boxplot(fill = "orange") +
+labs(title = "Boxplot da Quantidade", y = "Quantidade")
+```
+
+# Boxplot para identificar outliers na variável preço
+
+```{r}
+ggplot(ano_2019, aes(y = preco)) + geom_boxplot(fill = "orange") +
+labs(title = "Boxplot do Preço", y = "Preço")
+```
+
+# Boxplot para identificar outliers na variável preco
+
+```{r}
+ggplot(sku_price, aes(y = preco)) + geom_boxplot(fill = "blue") +
+labs(title = "Boxplot do Preço dos Produtos", y = "Preço")
+
+```
+
+# Identificação de outliers
+
+```{r}
+quantidade_outliers <- ano_2019 %>%
+  filter(quantidade < quantile(quantidade, 0.25) - 1.5 * IQR(quantidade) | quantidade > quantile(quantidade, 0.75) + 1.5 * IQR(quantidade))
+
+preco_outliers <- ano_2019 %>%
+  filter(preco < quantile(preco, 0.25) - 1.5 * IQR(preco) | preco > quantile(preco, 0.75) + 1.5 * IQR(preco))
+
+preco_outliers_sku <- sku_price %>%
+  filter(preco < quantile(preco, 0.25) - 1.5 * IQR(preco) | preco > quantile(preco, 0.75) + 1.5 * IQR(preco))
+
+
+print("Outliers na variável preço:")
+print(preco_outliers)
+
+print("Outliers na variável preco dos produtos:")
+print(preco_outliers_sku)
+
+
+set.seed(123)  # Para garantir reprodutibilidade
+ano_2019_sample <- ano_2019 %>% sample_frac(0.05)
+```
+
+# Análise Bivariada
+
+## Gráfico de dispersão para explorar a relação entre quantidade e preço
+
+```{r}
+ggplot(ano_2019_sample, aes(x = quantidade, y = preco)) +
+geom_point(alpha = 0.6) + labs(title = "Dispersão entre Quantidade e
+Preço", x = "Quantidade", y = "Preço")
+```
+
+## Gráfico de barras para explorar a relação entre cod_loja e quantidade
+
+```{r}
+ggplot(ano_2019_sample, aes(x = cod_loja, y = quantidade)) +
+geom_bar(stat = "identity", fill = "blue") + labs(title = "Quantidade
+Vendida por Loja", x = "Código da Loja", y = "Quantidade") +
+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+# Análise de Componentes Principais (PCA)
+
+## Selecionar as variáveis numéricas e remover NAs
+
+```{r}
+numeric_vars <- ano_2019_sample %>% 
+  select_if(is.numeric) %>%
+  na.omit()
+
+```
+
+## Verificar o número de variáveis selecionadas
+
+```{r}
+print(paste("Número de variáveis numéricas:", ncol(numeric_vars)))
+```
+
+## Executar PCA
+
+```{r}
+pca_result <- prcomp(numeric_vars, scale. = TRUE)
+```
+
+## Resumo do PCA
+
+```{r}
+summary(pca_result)
+```
+
+## Visualizar os componentes principais
+
+```         
+```
+
+## Visualizar a variância explicada pelos componentes principais
+
+```{r}
+fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+```
+
+## Interpretação dos componentes principais
+
+```{r}
+fviz_pca_var(pca_result, 
+             col.var = "contrib", # Colorir por contribuição aos PCs
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)       # Evitar sobreposição de texto
+```

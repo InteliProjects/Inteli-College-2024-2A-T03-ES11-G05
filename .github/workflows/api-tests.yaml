@@ -1,0 +1,44 @@
+name: Run API Tests
+
+on:
+  push:
+    branches:
+      - main
+      - uat
+      - developer
+  pull_request:
+    branches:
+      - main
+      - uat
+      - developer
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'  
+
+    - name: Install dependencies
+      working-directory: ./src/api
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt 
+        
+    - name: Run API tests
+      working-directory: ./src/api
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        ACCESS_KEY_AWS: ${{ secrets.ACCESS_KEY_AWS }}
+        SECRET_KEY_AWS: ${{ secrets.SECRET_KEY_AWS }}
+        SESSION_TOKEN_AWS: ${{ secrets.SESSION_TOKEN_AWS }}
+      run: |
+        pytest -v -s

@@ -1,0 +1,212 @@
+---
+title: "Analise de dados de vendas - 2022"
+author: "pingu01"
+date: "2024-08-10"
+output: html_document
+---
+
+Esse documento apresenta a análise de dados das vendas de 2022 do nosso parceiro. A análise foi feita em R.
+
+# Importação libs e datasets
+
+```{r install_packages}
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(corrplot)
+library(FactoMineR)
+library(factoextra)
+
+## 1
+# Carregamento e Preparação dos Dados
+ano_2022 <- read.csv("./datasets/2022.csv")
+store_final <- read.csv("./datasets/store_final.csv")
+target_store_final <- read.csv("./datasets/target_store_final.csv")
+sku_status_dataset <- read.csv2("./datasets/sku_status_dataset.csv")
+targets_salesperson_final <- read.csv("./datasets/targets_salesperson_final.csv")
+sku_price <- read.csv("./datasets/sku_price.csv")
+sku_dataset <- read.csv2("./datasets/sku_dataset.csv")
+sku_cost <- read.csv("./datasets/sku_cost.csv")
+employee_final <- read.csv("./datasets/employee_final.csv")
+
+# Exibindo as primeiras linhas dos dados
+print(head(ano_2022))
+print(head(sku_dataset))
+print(head(store_final))
+print(head(sku_cost))
+print(head(sku_status_dataset))
+print(head(employee_final))
+print(head(target_store_final))
+print(head(targets_salesperson_final))
+print(head(sku_price))
+
+# Verificando a estrutura dos dados
+str(ano_2022)
+str(store_final)
+str(target_store_final)
+str(sku_status_dataset)
+str(targets_salesperson_final)
+str(sku_price)
+str(sku_dataset)
+str(sku_cost)
+str(employee_final)
+```
+
+# Resumo estatístico das variáveis
+
+```{r load_data}
+##2
+summary(ano_2022)
+summary(store_final)
+summary(sku_cost)
+summary(employee_final)
+summary(target_store_final)
+summary(sku_status_dataset)
+summary(targets_salesperson_final)
+summary(sku_price)
+summary(sku_dataset)
+
+
+# Descrição das variáveis nos conjuntos de dados
+colnames(ano_2022)
+colnames(store_final)
+colnames(sku_cost)
+colnames(employee_final)
+colnames(target_store_final)
+colnames(sku_status_dataset)
+colnames(targets_salesperson_final)
+colnames(sku_price)
+colnames(sku_dataset)
+```
+
+# Análise Univariada
+
+## Variavel `quantidade`
+
+### Histograma
+
+```{r}
+ggplot(ano_2022, aes(x=quantidade)) +
+  geom_histogram(binwidth=1, fill="purple", color="black") +
+  labs(title="Distribuição da Quantidade Vendida", x="Quantidade", y="Frequência") +
+  theme_minimal()
+
+```
+
+### Boxplot
+
+```{r}
+ggplot(ano_2022, aes(y=quantidade)) +
+  geom_boxplot(fill="purple", color="black") +
+  labs(title="Boxplot da Quantidade Vendida", y="Quantidade") +
+  theme_minimal()
+```
+
+## Variavel `preco`
+
+### Histograma
+
+```{r}
+ggplot(ano_2022, aes(x=preco)) +
+  geom_histogram(binwidth=10, fill="steelblue", color="black") +
+  labs(title="Distribuição dos Preços", x="Preço", y="Frequência") +
+  theme_minimal()
+```
+
+### Boxplot
+
+```{r}
+ggplot(ano_2022, aes(y=preco)) +
+  geom_boxplot(fill="lightblue", color="black") +
+  labs(title="Boxplot dos Preços", y="Preço") +
+  theme_minimal()
+```
+
+## Extra
+
+```{r}
+# Agregar a soma de quantidade por loja
+dados_agrupados <- aggregate(cbind(quantidade, preco) ~ cod_loja, data=ano_2022, sum)
+# Selecionar as Top 10 lojas com maior quantidade vendida
+top_10_lojas <- dados_agrupados[order(-dados_agrupados$quantidade), ][1:10, ]
+
+ggplot(top_10_lojas, aes(x=reorder(cod_loja, -quantidade), y=quantidade)) +
+  geom_bar(stat="identity", fill="steelblue") +
+  labs(title="Top 10 Lojas por Quantidade Vendida", x="Código da Loja", y="Quantidade Vendida") +
+  theme_minimal() +
+  coord_flip()
+
+# Criar o gráfico de barras para preço
+ggplot(top_10_lojas, aes(x=reorder(cod_loja, -preco), y=preco)) +
+  geom_bar(stat="identity", fill="lightgreen") +
+  labs(title="Top 10 Lojas por Preço Total Vendido", x="Código da Loja", y="Preço Total Vendido") +
+  theme_minimal() +
+  coord_flip()
+```
+
+# Análise Bivariada
+
+## Relações entre variáveis
+
+```{r}
+#Gerando uma seed para trabalhar melhor com os dados
+set.seed(123)  # Para garantir reprodutibilidade
+ano_2022_sample <- ano_2022 %>% sample_frac(0.05)
+
+#Relação entre 'preco' e 'quantidade'
+
+ggplot(ano_2022_sample, aes(x=quantidade, y=preco)) +
+  geom_point(color="blue", alpha=0.6) +
+  labs(title="Relação entre Quantidade Vendida e Preço", x="Quantidade Vendida", y="Preço Total") +
+  theme_minimal()
+
+#Relação entre Quantidade Vendida e Preço por Categoria
+
+relacao_sku_ano_2022 <- merge(ano_2022_sample, sku_dataset, by="cod_prod")
+
+# Relação entre Quantidade Vendida e Preço por Categoria
+ggplot(relacao_sku_ano_2022, aes(x=quantidade, y=preco, color=categoria)) +
+  geom_point(alpha=0.6) +
+  labs(title="Relação entre Quantidade Vendida e Preço por Categoria", x="Quantidade Vendida", y="Preço Total") +
+  theme_minimal()
+
+numeric_vars <- ano_2022_sample %>%
+  select_if(is.numeric) %>%
+  na.omit()
+
+cor_matrix <- cor(numeric_vars)
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8, tl.col = "black", addCoef.col = "black")
+```
+
+# Análise Multivariada
+
+```{r}
+# Análise de Componentes Principais (PCA)
+
+# Realizando PCA nas variáveis numéricas
+pca_result <- prcomp(numeric_vars, scale. = TRUE)
+
+# Resumo dos componentes principais
+summary(pca_result)
+
+# Visualização das variâncias explicadas
+fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+
+# Visualização das variáveis no espaço dos componentes principais
+fviz_pca_var(pca_result, 
+             col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+
+# Conclusão
+
+## Sumário das Descobertas
+
+Nessa análise, pudemos ver que existe uma relação entre preço e quantidade, significando que produtos mais baratos são mais vendidos, isso pode ser visto pela PCA também. Podemos ver que existem Outliers.
+
+## Discussão sobre Limitações e Possíveis Melhorias
+
+Nessa análise, dependemos muito de variáveis numéricas, o que atrapalha em alguns casos.
+
+Além disso, pelo tamanho dos dados, tivemos que fazer samples.

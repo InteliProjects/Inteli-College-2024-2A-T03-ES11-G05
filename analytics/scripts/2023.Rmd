@@ -1,0 +1,259 @@
+---
+title: "Análise de Dados de Vendas de 2024"
+author: "Marcelo G Feitoza"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document: 
+    theme: yeti
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introdução
+
+Este documento apresenta uma análise dos dados de vendas de 2024 utilizando R. A análise inclui desde a inspeção inicial dos dados até a aplicação de técnicas avançadas, como Análise de Componentes Principais (PCA), com o objetivo de identificar padrões, entender a distribuição das variáveis e explorar relações entre diferentes métricas de vendas.
+
+```{r install_packages}
+# Instalação e carregamento das bibliotecas necessárias
+required_packages <- c("dplyr", "tibble", "ggplot2", "corrplot", "FactoMineR", "factoextra")
+for (pkg in required_packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
+
+# Começar timer
+start_time <- Sys.time()
+```
+
+# Carregamento e Preparação dos Dados
+
+Nesta seção, os dados são carregados a partir de arquivos CSV e convertidos para o formato `tibble` para melhor manipulação. Em seguida, realizamos uma inspeção inicial das primeiras linhas e da estrutura dos dados.
+
+## Carregamento dos Dados
+
+```{r load_data}
+# Carregando os dados e convertendo para tibble
+datasets <- list(
+  ano_2024 = read.csv("./data/raw/2024.csv"),
+  store_final = read.csv("./data/raw/store_final.csv"),
+  target_store_final = read.csv("./data/raw/target_store_final.csv"),
+  sku_status_dataset = read.csv2("./data/raw/sku_status_dataset.csv"),
+  targets_salesperson_final = read.csv("./data/raw/targets_salesperson_final.csv"),
+  sku_price = read.csv("./data/raw/sku_price.csv"),
+  sku_dataset = read.csv2("./data/raw/sku_dataset.csv"),
+  sku_cost = read.csv("./data/raw/sku_cost.csv"),
+  employee_final = read.csv("./data/raw/employee_final.csv")
+) %>% 
+  lapply(as_tibble)
+```
+
+## Visualização das Primeiras Linhas
+
+```{r view_data}
+# Função para visualizar as primeiras linhas de cada dataset
+view_head <- function(data_list) {
+  lapply(data_list, head)
+}
+
+view_head(datasets)
+```
+
+## Verificação da Estrutura dos Dados
+
+```{r check_structure}
+# Função para verificar a estrutura de cada dataset
+view_structure <- function(data_list) {
+  lapply(data_list, str)
+}
+
+view_structure(datasets)
+```
+
+# Resumo Estatístico e Descrição dos Dados
+
+Nesta seção, é apresentado um resumo estatístico das variáveis, essencial para compreender o comportamento dos dados e identificar possíveis anomalias.
+
+## Resumo Estatístico
+
+```{r summary_data}
+# Função para gerar resumo estatístico de cada dataset
+view_summary <- function(data_list) {
+  lapply(data_list, summary)
+}
+
+view_summary(datasets)
+```
+
+## Descrição das Variáveis
+
+As variáveis presentes nos conjuntos de dados incluem:
+
+-   `quantidade`: Quantidade de itens vendidos em uma transação.
+-   `preco`: Preço de venda dos itens.
+-   `cod_loja`: Código identificador das lojas.
+-   `cod_prod`: Unidade de manutenção de estoque (SKU) referente aos produtos.
+-   `status`: Status dos SKUs, indicando se estão ativos ou inativos.
+-   `target`: Meta de vendas associada a cada vendedor ou loja.
+-   `id_employee`: Identificador único dos empregados.
+
+# Análise Univariada
+
+A análise univariada permite entender a distribuição de cada variável individualmente, identificar outliers e observar padrões iniciais nos dados.
+
+## Visualização das Distribuições
+
+```{r histograms}
+# Histograma para a variável quantidade
+ggplot(datasets$ano_2024, aes(x = quantidade)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  labs(title = "Distribuição de Quantidade", x = "Quantidade", y = "Frequência")
+
+# Gráfico de densidade para a variável preço
+ggplot(datasets$ano_2024, aes(x = preco)) +
+  geom_density(fill = "green", alpha = 0.5) +
+  labs(title = "Densidade do Preço", x = "Preço", y = "Densidade")
+```
+
+## Identificação de Outliers
+
+```{r identify_outliers}
+identify_outliers <- function(data, variable) {
+  if (!(variable %in% names(data))) {
+    stop(paste("Variável", variable, "não encontrada no dataset."))
+  }
+  
+  # Verificando se a coluna contém valores válidos
+  if (all(is.na(data[[variable]]))) {
+    stop(paste("Variável", variable, "está vazia ou contém apenas NA."))
+  }
+  
+  lower_bound <- quantile(data[[variable]], 0.25, na.rm = TRUE) - 1.5 * IQR(data[[variable]], na.rm = TRUE)
+  upper_bound <- quantile(data[[variable]], 0.75, na.rm = TRUE) + 1.5 * IQR(data[[variable]], na.rm = TRUE)
+  
+  data %>%
+    filter(data[[variable]] < lower_bound | data[[variable]] > upper_bound)
+}
+
+# Aplicando a função com tryCatch e verificações adicionais
+quantidade_outliers <- tryCatch({
+  identify_outliers(datasets$ano_2024, "quantidade")
+}, error = function(e) {
+  message("Erro ao identificar outliers em 'quantidade': ", e)
+  NULL
+})
+
+preco_outliers <- tryCatch({
+  identify_outliers(datasets$ano_2024, "preco")
+}, error = function(e) {
+  message("Erro ao identificar outliers em 'preco': ", e)
+  NULL
+})
+
+preco_outliers_sku <- tryCatch({
+  identify_outliers(datasets$sku_price, "preco")
+}, error = function(e) {
+  message("Erro ao identificar outliers em 'preco' no dataset SKU: ", e)
+  NULL
+})
+
+# Exibindo os outliers identificados (se houver)
+list(quantidade_outliers, preco_outliers, preco_outliers_sku)
+```
+
+# Análise Bivariada
+
+Nesta etapa, exploramos as relações entre variáveis para entender como elas interagem e identificar correlações significativas.
+
+## Visualização de Relações entre Variáveis
+
+```{r bivariate_analysis}
+set.seed(123)
+ano_2024_sample <- datasets$ano_2024 %>% sample_frac(1.0)
+
+# Gráfico de dispersão entre quantidade e preço
+ggplot(ano_2024_sample, aes(x = quantidade, y = preco)) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Dispersão entre Quantidade e Preço", x = "Quantidade", y = "Preço")
+
+# Gráfico de barras para quantidade vendida por loja
+ggplot(ano_2024_sample, aes(x = cod_loja, y = quantidade)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Quantidade Vendida por Loja", x = "Código da Loja", y = "Quantidade") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+## Análise de Correlação
+
+```{r correlation_analysis}
+# Cálculo da matriz de correlação para variáveis numéricas
+numeric_vars <- ano_2024_sample %>%
+  select_if(is.numeric) %>%
+  na.omit()
+
+cor_matrix <- cor(numeric_vars)
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8, tl.col = "black", addCoef.col = "black")
+```
+
+# Análise Multivariada
+
+A Análise de Componentes Principais (PCA) é utilizada para reduzir a dimensionalidade dos dados, ajudando a identificar as variáveis que mais influenciam na variabilidade dos dados.
+
+## Análise de Componentes Principais (PCA)
+
+```{r pca_analysis}
+# Realizando PCA nas variáveis numéricas
+pca_result <- prcomp(numeric_vars, scale. = TRUE)
+
+# Resumo dos componentes principais
+summary(pca_result)
+
+# Visualização das variâncias explicadas
+fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+
+# Visualização das variáveis no espaço dos componentes principais
+fviz_pca_var(pca_result, 
+             col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+
+### Análise de eficiência
+```{r}
+# Finalizar timer
+end_time <- Sys.time()
+
+# Calculando a porcentagem com duas casas decimais
+porcentagem_amostrada <- round(nrow(ano_2024_sample) / nrow(datasets$ano_2024) * 100, 2)
+
+# Exibindo a porcentagem e o tempo de execução
+print(paste("Porcentagem do DataFrame amostrada:", porcentagem_amostrada, "%\nTempo de execução:", end_time - start_time))
+```
+
+## Interpretação dos Componentes
+
+Os componentes principais capturam a maior parte da variabilidade nas variáveis numéricas. A interpretação revela que variáveis como `preco` e `quantidade` explicam uma parte significativa da variabilidade nos dados, indicando que o comportamento dessas variáveis é crucial para entender os padrões observados.
+
+# Conclusão e Discussão
+
+## Sumário das Descobertas
+
+Nesta análise, identificamos padrões importantes nas vendas, como a relação entre quantidade e preço. Outliers foram detectados, o que pode indicar erros ou casos excepcionais. A PCA revelou que poucas variáveis explicam a maior parte da variabilidade nos dados, com destaque para `preco` e `quantidade`.
+
+## Discussão sobre Limitações e Possíveis Melhorias
+
+Uma limitação desta análise é a dependência de variáveis numéricas. Análises futuras poderiam incluir modelos de regress
+
+ão ou análises temporais para prever tendências, além de expandir a análise para incluir dados categóricos ou temporais, como a sazonalidade das vendas.
+
+### Explicação das Melhorias:
+
+1.  **Verificação de Existência de Coluna:** Adicionei uma verificação para garantir que a coluna especificada existe no dataset antes de tentar identificar outliers. Isso evita erros caso a coluna não esteja presente.
+
+2.  **Tratamento de Erros:** Usei `tryCatch` para capturar possíveis erros durante a identificação de outliers, o que permite continuar a execução do código mesmo que um erro ocorra.
+
+3.  **Robustez:** Essas melhorias tornam o código mais robusto e resiliente a mudanças inesperadas nos dados, evitando interrupções na execução do relatório.

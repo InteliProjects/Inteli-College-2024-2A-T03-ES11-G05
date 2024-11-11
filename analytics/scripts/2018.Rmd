@@ -1,0 +1,561 @@
+---
+title: "ponderada_S1"
+author: "Julia Togni"
+date: "2024-08-06"
+output: html_document
+---
+
+## Bibliotecas necessárias
+
+```{r}
+library(dplyr) 
+library(tibble) 
+library(ggplot2) 
+library(corrplot) 
+library(FactoMineR) 
+library(factoextra)
+```
+
+## Carregamento e Preparação dos Dados
+
+```{r}
+ano_2018 <- read.csv("./datasets/2018.csv")
+store_final <- read.csv("./datasets/store_final.csv") 
+target_store_final <- read.csv("./datasets/target_store_final.csv") 
+sku_status_dataset <- read.csv2("./datasets/sku_status_dataset.csv") 
+targets_salesperson_final <- read.csv("./datasets/targets_salesperson_final.csv")
+sku_price <- read.csv("./datasets/sku_price.csv") 
+sku_dataset <- read.csv2("./datasets/sku_dataset.csv") 
+sku_cost <- read.csv("./datasets/sku_cost.csv") 
+employee_final <- read.csv("./datasets/employee_final.csv")
+```
+
+##### Convertendo dataframes para tibbles
+
+```{r}
+ano_2018 <- as_tibble(ano_2018)
+store_final <- as_tibble(store_final)
+target_store_final <- as_tibble(target_store_final)
+sku_status_dataset <- as_tibble(sku_status_dataset)
+targets_salesperson_final <- as_tibble(targets_salesperson_final)
+sku_price <- as_tibble(sku_price)
+sku_dataset <- as_tibble(sku_dataset)
+sku_cost <- as_tibble(sku_cost)
+employee_final <- as_tibble(employee_final)
+```
+
+##### Visualizando as primeiras linhas de cada dataset
+
+```{r}
+head(ano_2018)
+```
+
+```{r}
+head(store_final)
+```
+
+```{r}
+head(target_store_final)
+```
+
+```{r}
+head(sku_status_dataset)
+```
+
+```{r}
+head(targets_salesperson_final)
+```
+
+```{r}
+head(sku_price)
+```
+
+```{r}
+head(sku_dataset)
+```
+
+```{r}
+head(sku_cost)
+```
+
+```{r}
+head(employee_final)
+```
+
+##### Visualizando a estrutura de cada dataset
+
+```{r}
+str(ano_2018)
+```
+
+```{r}
+str(store_final)
+```
+
+```{r}
+str(target_store_final)
+```
+
+```{r}
+str(sku_status_dataset)
+```
+
+```{r}
+str(targets_salesperson_final)
+```
+
+```{r}
+str(sku_price)
+```
+
+```{r}
+str(sku_dataset)
+```
+
+```{r}
+str(sku_cost)
+```
+
+```{r}
+str(employee_final)
+```
+
+## Resumo Estatístico e Descrição dos Dados
+
+```{r}
+summary(ano_2018)
+```
+
+```{r}
+summary(store_final)
+```
+
+```{r}
+summary(target_store_final)
+```
+
+```{r}
+summary(sku_status_dataset)
+```
+
+```{r}
+summary(targets_salesperson_final)
+```
+
+```{r}
+summary(sku_price)
+```
+
+```{r}
+summary(sku_dataset)
+```
+
+```{r}
+summary(sku_cost)
+```
+
+```{r}
+summary(employee_final)
+```
+
+### Manipulando tabela
+
+##### Unindo sku_price com sku_dataset e sku_cost com base em cod_prod
+
+```{r}
+sku_data_merged <- sku_price %>%
+  left_join(sku_dataset, by = c("cod_prod")) %>%
+  left_join(sku_cost, by = c("cod_prod", "data_inicio", "data_fim"))
+```
+
+```{r}
+head(sku_data_merged)
+```
+
+##### Tabela de margem dos produtos
+
+```{r}
+sku_data_margin <- sku_price %>%
+  left_join(sku_cost, by = c("cod_prod", "data_inicio", "data_fim"))
+```
+
+```{r}
+sku_data_margin_clean <- sku_data_margin %>%
+  filter(!is.na(custo) & !is.na(preco))
+```
+
+```{r}
+head(sku_data_margin_clean)
+```
+
+```{r}
+str(sku_data_margin_clean)
+```
+
+```{r}
+summary(sku_data_margin_clean)
+```
+
+##### Criando um sample para melhorar performance
+```{r}
+ano_2018_sample <- ano_2018 %>% sample_n(10000)
+```
+
+## Descrição das Variáveis
+
+#### ano_2018
+
+-   **data**: Data da transação (Tipo: character)
+
+-   **cod_vendedor**: Código identificador do vendedor (Tipo: numérico)
+
+-   **cod_loja**: Código identificador da loja (Tipo: character)
+
+-   **cod_transacao**: Código identificador da transação (Tipo: character)
+
+-   **quantidade**: Quantidade de itens vendidos (Tipo: numérico)
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **preco**: Preço do produto (Tipo: numérico)
+
+#### store_final
+
+-   **nome_loja**: Nome da loja (Tipo: character)
+
+-   **regiao**: Região onde a loja está localizada (Tipo: character)
+
+-   **diretoria**: Diretoria responsável pela loja (Tipo: character)
+
+-   **data_inauguracao**: Data de inauguração da loja (Tipo: character)
+
+#### target_store_final
+
+-   **month**: Mês da meta de vendas (Tipo: character)
+
+-   **store_id**: Código identificador da loja (Tipo: character)
+
+-   **sales_target**: Meta de vendas para a loja (Tipo: numérico)
+
+#### sku_status_dataset
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **data_inicio**: Data de início da validade do status do produto (Tipo: character)
+
+-   **data_fim**: Data de fim da validade do status do produto (Tipo: character)
+
+#### targets_salesperson_final
+
+-   **id_employee**: Código identificador do funcionário (Tipo: numérico)
+
+-   **sales_target**: Meta de vendas para o funcionário (Tipo: numérico)
+
+-   **month**: Mês da meta de vendas (Tipo: character)
+
+#### sku_price
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **data_inicio**: Data de início da validade do preço do produto (Tipo: character)
+
+-   **data_fim**: Data de fim da validade do preço do produto (Tipo: character)
+
+-   **preco**: Preço do produto (Tipo: numérico)
+
+#### sku_dataset
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **nome_abrev**: Nome abreviado do produto (Tipo: character)
+
+-   **nome_completo**: Nome completo do produto (Tipo: character)
+
+-   **descricao**: Descrição do produto (Tipo: character)
+
+-   **categoria**: Categoria do produto (Tipo: character)
+
+-   **sub_categoria**: Subcategoria do produto (Tipo: character)
+
+-   **marca**: Marca do produto (Tipo: character)
+
+-   **conteudo_valor**: Valor do conteúdo do produto (Tipo: character)
+
+-   **conteudo_medida**: Medida do conteúdo do produto (Tipo: character)
+
+#### sku_cost
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **data_inicio**: Data de início da validade do custo do produto (Tipo: character)
+
+-   **data_fim**: Data de fim da validade do custo do produto (Tipo: character)
+
+-   **custo**: Custo do produto (Tipo: numérico)
+
+#### employee_final
+
+-   **id_employee**: Código identificador do funcionário (Tipo: numérico)
+
+-   **name**: Nome do funcionário (Tipo: character)
+
+-   **surname**: Sobrenome do funcionário (Tipo: character)
+
+-   **cpf**: CPF do funcionário (Tipo: character)
+
+-   **status**: Status do funcionário (ativo/inativo) (Tipo: character)
+
+-   **role**: Função/cargo do funcionário (Tipo: character)
+
+-   **initial_date**: Data de início do contrato do funcionário (Tipo: character)
+
+-   **end_date**: Data de término do contrato do funcionário (Tipo: character)
+
+-   **store_id**: Código identificador da loja onde o funcionário trabalha (Tipo: character)
+
+#### sku_data_merged (tabela criada)
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **data_inicio**: Data de início da validade do status do produto (Tipo: character)
+
+-   **data_fim**: Data de fim da validade do status do produto (Tipo: character)
+
+-   **preco**: Preço do produto (Tipo: numérico)
+
+-   **nome_abrev**: Nome abreviado do produto (Tipo: character)
+
+-   **nome_completo**: Nome completo do produto (Tipo: character)
+
+#### sku_data_margin_clean (tabela criada)
+
+-   **cod_prod**: Código identificador do produto (Tipo: numérico)
+
+-   **data_inicio**: Data de início da validade do status do produto (Tipo: character)
+
+-   **data_fim**: Data de fim da validade do status do produto (Tipo: character)
+
+-   **preco**: Preço do produto (Tipo: numérico)
+
+-   **custo**: Custo do produto (Tipo: numérico)
+
+## Análise Univariada
+
+##### Histograma para a variável quantidade
+
+```{r}
+ggplot(ano_2018_sample, aes(x = quantidade)) + 
+  geom_histogram(binwidth = 1, fill = "pink", color = "black") + 
+  labs(title = "Distribuição de Quantidade", x = "Quantidade", y = "Frequência")
+```
+
+##### Gráfico de densidade para a variável preço
+
+```{r}
+ggplot(ano_2018_sample, aes(x = preco)) + 
+  geom_density(fill = "purple", alpha = 0.5) + labs(title = "Densidade do Preço", x = "Preço", y = "Densidade")
+```
+
+##### Boxplot para a variável região
+
+```{r}
+ggplot(store_final, aes(x = regiao)) +
+  geom_bar(fill = "green") +
+  labs(title = "Distribuição de Regiões", x = "Região", y = "Contagem") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+##### Histograma para a variável sales_target
+
+```{r}
+ggplot(target_store_final, aes(x = sales_target)) + geom_histogram(binwidth = 5000, fill = "red", color = "black") + labs(title = "Distribuição da Meta de Vendas", x = "Meta de Vendas", y = "Frequência")
+```
+
+##### Histograma da variável preço
+
+```{r}
+ggplot(sku_price, aes(x = preco)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") + 
+  labs(title = "Distribuição de Preço", x = "Preço", y = "Frequência")
+```
+
+##### Boxplot para a variável custo
+
+```{r}
+ggplot(sku_cost, aes(y = custo)) + 
+  geom_boxplot(fill = "orange", color = "black") + 
+  labs(title = "Distribuição de Custo", y = "Custo")
+```
+
+##### Boxplot da variável quantidade
+
+```{r}
+ggplot(ano_2018_sample, aes(y = quantidade)) + 
+  geom_boxplot(fill = "green", color = "black") + 
+  labs(title = "Distribuição de Quantidade", y = "Quantidade")
+```
+
+### Identificação de outliers
+
+##### Boxplot para identificar outliers na variável preço
+
+```{r}
+ggplot(ano_2018_sample, aes(y = preco)) + geom_boxplot(fill = "orange") + labs(title = "Boxplot do Preço", y = "Preço")
+```
+
+##### Boxplot para identificar outliers na variável quantidade
+
+```{r}
+ggplot(ano_2018_sample, aes(y = quantidade)) + geom_boxplot(fill = "brown") + labs(title = "Boxplot da Quantidade", y = "Quantidade")
+```
+
+##### Boxplot para identificar outliers na variável preco
+
+```{r}
+ggplot(sku_price, aes(y = preco)) + geom_boxplot(fill = "blue") + labs(title = "Boxplot do Preço dos Produtos", y = "Preço")
+```
+
+##### Identificando outliers na variável "preço" do dataset ano_2018
+
+```{r}
+preco_outliers <- ano_2018_sample %>%
+  filter(preco < quantile(preco, 0.25) - 1.5 * IQR(preco) |
+         preco > quantile(preco, 0.75) + 1.5 * IQR(preco))
+```
+
+##### Identificando outliers na variável "preço" do dataset sku_price
+
+```{r}
+preco_outliers_sku <- sku_price %>%
+  filter(preco < quantile(preco, 0.25) - 1.5 * IQR(preco) |
+         preco > quantile(preco, 0.75) + 1.5 * IQR(preco))
+```
+
+##### Exibindo os dataframes com outliers
+
+```{r}
+preco_outliers
+preco_outliers_sku
+```
+
+##### Exibindo as linhas que foram removidas como outliers
+
+```{r}
+summary(preco_outliers)
+```
+
+```{r}
+summary(preco_outliers_sku)
+```
+
+## Análise Bivariada
+
+Criando gráficos de dispersão (scatter plots) ou gráficos de barras podemos explorar as relações entre as variáveis, como `preco` vs `custo`.
+
+##### Criando um scatter plot para visualizar a relação entre preço e custo
+
+```{r}
+ggplot(sku_data_margin_clean, aes(x = custo, y = preco)) +
+  geom_point(color = "blue") +
+  labs(title = "Relação entre Preço e Custo", x = "Custo", y = "Preço")
+```
+
+##### Selecionando apenas as colunas numéricas para a correlação
+
+```{r}
+numeric_vars <- sku_data_margin_clean %>% select(preco, custo)
+numeric_vars
+```
+
+##### Calculando a matriz de correlação
+
+```{r}
+cor_matrix <- cor(numeric_vars, use = "complete.obs")
+cor_matrix
+```
+
+##### Visualizando a matriz de correlação com corrplot
+
+```{r}
+corrplot(cor_matrix, method = "circle", type = "upper", tl.col = "black", tl.srt = 45)
+```
+
+Esse gráfico não gerou insights significativos. Como não encontrei uma alternativa mais adequada para utilizar essa função, optei por mantê-la conforme está.
+
+## Análise Multivariada
+
+#### Análise de Componentes Principais (PCA)
+
+##### Selecionar as variáveis numéricas e remover NAs
+
+```{r}
+numeric_vars <- ano_2018_sample %>%
+  select_if(is.numeric) %>%
+  na.omit()
+head(numeric_vars)
+```
+
+##### Verificar o número de variáveis selecionadas
+
+```{r}
+print(paste("Número de variáveis numéricas:", ncol(numeric_vars)))
+```
+
+##### Executar PCA
+
+```{r}
+pca_result <- prcomp(numeric_vars, scale. = TRUE)
+pca_result
+```
+
+##### Resumo do PCA
+
+```{r}
+summary(pca_result)
+```
+
+##### Visualizar a variância explicada pelos componentes principais
+
+```{r}
+fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+```
+
+## Sumário das Descobertas
+
+Durante a análise dos dados fornecidos, algumas descobertas importantes foram feitas:
+
+1.  **Distribuição das Variáveis:**
+    -   **Preço e Custo:** A análise univariada revelou que as variáveis `preco` e `custo` seguem uma distribuição relativamente normal, mas com alguns outliers significativos, principalmente em `preco`. Isso sugere que, embora a maioria dos produtos tenha preços e custos dentro de um intervalo esperado, existem alguns casos extremos que merecem nossa atenção.
+    -   **Quantidade:** A variável `quantidade` mostrou uma distribuição mais dispersa, indicando que há uma ampla variação nas quantidades vendidas entre diferentes produtos.
+2.  **Identificação de Outliers:**
+    -   Os outliers foram identificados principalmente nas variáveis `preco` e `quantidade`. Estes outliers podem ser casos especiais, erros de entrada de dados, ou produtos com características específicas. A presença desses outliers pode influenciar a média e a variação, e por isso, devemos analisá-los com mais detalhes para decidir se devem ser incluídos ou excluídos em futuras análises.
+3.  **Correlação entre Variáveis:**
+    -   **Preço vs. Custo:** A análise bivariada mostrou uma correlação muito forte entre `preco` e `custo`, o que era esperado, dado que o preço de venda geralmente está diretamente relacionado ao custo do produto. No entanto, essa forte correlação indica que outras variáveis podem ser necessárias para uma análise mais robusta, como margem de lucro, para evitar possíveis problemas de multicolinearidade no modelo de recomendação.
+4.  **Análise de Componentes Principais (PCA):**
+    -   A Análise de Componentes Principais indicou que a maior parte da variância nos dados pode ser explicada pelos primeiros dois componentes principais. Isso sugere que a dimensionalidade dos dados pode ser reduzida sem perder muita informação, o que é útil para simplificar modelos preditivos e para visualização de dados.
+
+## Discussão sobre Limitações e Possíveis Melhorias
+
+**Limitações do Estudo:**
+
+1.  **Dados Ausentes:**
+    -   A análise encontrou valores ausentes em várias variáveis, o que pode ter influenciado os resultados da análise de correlação e PCA. Embora tenham sido removidos ou substituídos, esses valores ausentes representam uma limitação que poderia ser mitigada com um conjunto de dados mais completo.
+2.  **Multicolinearidade:**
+    -   A forte correlação entre `preco` e `custo` sugere uma possível multicolinearidade que pode distorcer modelos de regressão ou outras análises multivariadas. Isso poderia limitar a eficácia de alguns modelos preditivos se não for tratado adequadamente.
+3.  **Outliers:**
+    -   A presença de outliers pode influenciar significativamente os resultados da análise. A decisão de incluir ou excluir esses outliers pode alterar as conclusões do estudo, o que introduz uma margem de incerteza nas descobertas.
+4.  **Escopo da Análise:**
+    -   A análise focou principalmente em `preco`, `custo`, e `quantidade`. Outras variáveis, como categorias de produtos, regiões de venda, e períodos de tempo, não foram exploradas nesse momento, mas relacioná-las poderia nos fornecer insights adicionais.
+
+**Possíveis Melhorias e Sugestões para Análises Futuras:**
+
+1.  **Coleta e Integração de Dados Mais Abrangente:**
+    -   Melhorar a coleta de dados para reduzir a quantidade de valores ausentes e garantir que todos os aspectos relevantes dos produtos e vendas sejam capturados pode aumentar a precisão das análises futuras.
+2.  **Análise de Séries Temporais:**
+    -   Realizar essa análise com as séries temporais pode nos fornecer insights sobre as tendências e sazonalidades que não foram capturados na análise atual.
+3.  **Exploração de Outliers:**
+    -   Realizar uma análise mais detalhada dos outliers identificados para entender melhor se eles representam erros de dados ou casos excepcionais que devem ser mantidos no modelo.
+4.  **Análise de Sensibilidade:**
+    -   Conduzir uma análise de sensibilidade para entender como as alterações nos dados (como a remoção de outliers ou preenchimento de valores ausentes) afetam os resultados poderia fortalecer as conclusões.
+
+Com essas melhorias e considerações, nossas análises futuras poderão ser mais robustas, oferecendo uma compreensão mais completa dos dados e suas implicações para a tomada de decisões.

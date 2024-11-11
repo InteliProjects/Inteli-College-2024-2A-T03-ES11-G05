@@ -1,0 +1,403 @@
+---
+title: "ponderada-programacao-1"
+author: "Marcos"
+date: "2024-08-10"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Carregamento e Preparação dos Dados
+
+## Instalação das bibliotecas necessárias
+
+- No bloco de código abaixo, é feita a instalação das bibliotecas que serão utilizadas na preparação e na análise dos dados, sendo que:
+-----
+"dplyr" é uma biblioteca do tidyverse utilizada para manipulação de dados. Ela oferece uma série de funções para realizar operações como filtragem, seleção, agrupamento, e resumo de dados de forma eficiente e intuitiva.
+-----
+"tibble" é outra parte do tidyverse e fornece uma alternativa moderna ao data.frame. Ele é projetado para ser mais fácil de usar, especialmente em scripts e na criação de dados estruturados para análise. tibbles têm algumas diferenças em relação a data.frames, como impressão simplificada e comportamento de subdefinição mais previsível.
+-----
+"ggplot2" é uma biblioteca poderosa para visualização de dados em R, parte do tidyverse. Ele implementa o conceito de gramática de gráficos (grammar of graphics), permitindo criar gráficos complexos de forma modular e flexível.
+------
+"corrplot" é uma biblioteca usada para visualização de matrizes de correlação. Ele facilita a criação de gráficos de correlação bonitos e informativos, onde a força e direção da correlação são representadas visualmente.
+------
+"FactoMineR" é uma biblioteca para análise multivariada. Ela é amplamente utilizada para realizar análises exploratórias, como Análise de Componentes Principais (PCA), Análise de Correspondência (CA), Análise de Correspondência Múltipla (MCA), entre outras.
+-----
+"factoextra" é uma biblioteca complementar ao FactoMineR, usada para extrair e visualizar resultados de análises multivariadas. Ele torna fácil a interpretação e apresentação dos resultados de análises como PCA, CA, e MCA.
+-----
+
+```{r}
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(corrplot)
+library(FactoMineR)
+library(factoextra)
+library(tidyr)
+getwd()
+```
+
+## Carregamento dos dados e uso do is.na() para verificar se existem espaços vazios
+
+- No bloco de código abaixo, as tabelas de dados a serem trabalhadas foram carregadas através do método "read.csv()" e após isso, foi feita uma verificação se haviam valores "N/A" na tabela para que isto fosse corrigido utilizando o método "is.na()". No caso, o output do console revelou que não há nenhum valor "N/A" nos dados a serem trabalhados.
+
+```{r}
+ano_2020 <- read.csv("2020.csv")
+store_final <- read.csv("store_final.csv")
+target_store_final <- read.csv("target_store_final.csv")
+sku_status_dataset <- read.csv2("sku_status_dataset.csv")
+targets_salesperson_final <- read.csv("targets_salesperson_final.csv")
+sku_price <- read.csv("sku_price.csv")
+sku_dataset <- read.csv2("sku_dataset.csv")
+sku_cost <- read.csv("sku_cost.csv")
+employee_final <- read.csv("employee_final.csv")
+
+temNa <- any(is.na(ano_2020))
+temNa
+temNa <- any(is.na(store_final))
+temNa
+temNa <- any(is.na(target_store_final))
+temNa
+temNa <- any(is.na(sku_status_dataset))
+temNa
+temNa <- any(is.na(targets_salesperson_final))
+temNa
+temNa <- any(is.na(sku_price))
+temNa
+temNa <- any(is.na(sku_dataset))
+temNa
+temNa <- any(is.na(sku_cost))
+temNa
+temNa <- any(is.na(employee_final))
+temNa
+```
+## Verificação das primeiras linhas
+
+- No bloco de código abaixo, foi utilizado o método head() para que as primeiras linhas das tabelas fossem verificadas. Além disso, antes deste processo as tabelas foram estruturadas no formato "tibble" para facilitar ainda mais a visualização
+
+```{r}
+ano_2020 <- as_tibble(ano_2020)
+store_final <- as_tibble(store_final)
+target_store_final <- as_tibble(target_store_final)
+sku_status_dataset <- as_tibble(sku_status_dataset)
+targets_salesperson_final <- as_tibble(targets_salesperson_final)
+sku_price <- as_tibble(sku_price)
+sku_dataset <- as_tibble(sku_dataset)
+sku_cost <- as_tibble(sku_cost)
+employee_final <- as_tibble(employee_final)
+
+
+print(head(ano_2020))
+print(head(store_final))
+print(head(target_store_final))
+print(head(sku_status_dataset))
+print(head(targets_salesperson_final))
+print(head(sku_price))
+print(head(sku_dataset))
+print(head(sku_cost))
+print(head(employee_final))
+```
+##Verificação da Estrutura dos Dados
+
+- No bloco de código abaixo, foi utilizado o método str() para a verificação da estrutura dos tibbles gerados a fim de que haja um melhor norteamento da análise exploratório adiante. No caso, o método passou qual o tipo de dado de cada coluna das tabelas, quantas linhas e colunas esta tem, qual o tipo do objeto analisado,etc.
+
+```{r}
+str(ano_2020)
+str(store_final)
+str(target_store_final)
+str(sku_status_dataset)
+str(targets_salesperson_final)
+str(sku_price)
+str(sku_dataset)
+str(sku_cost)
+str(employee_final)
+```
+# Resumo Estatístico e Descrição dos Dados
+
+## Resumo estatístico
+
+- No bloco de código abaixo, é utilizado o método summary() para a obtenção de um resumo estatístico de cada tabela. Neste caso, ele revela valores como mínimo, máximo, média, primeiro quartil e terceiro quartil em colunas que possuem valores numéricos e atributos como "length" e classe em colunas de caracteres.
+
+```{r}
+summary(ano_2020)
+summary(store_final)
+summary(target_store_final)
+summary(sku_status_dataset)
+summary(targets_salesperson_final)
+summary(sku_price)
+summary(sku_dataset)
+summary(sku_cost)
+summary(employee_final)
+```
+
+## Descrição das Variáveis
+
+- No bloco abaixo, será realizada uma breve análise das variáveis das tabelas analisadas.
+
+```{r}
+# ## Descrição das Variáveis
+# 
+# ### ano_2020
+# - **data**: Data da transação (Tipo: character)
+# - **cod_vendedor**: Código identificador do vendedor (Tipo: numérico)
+# - **cod_loja**: Código identificador da loja (Tipo: character)
+# - **cod_transacao**: Código identificador da transação (Tipo: character)
+# - **quantidade**: Quantidade de itens vendidos (Tipo: numérico)
+# - **cod_prod**: Código identificador do produto (Tipo: numérico)
+# - **preco**: Preço do produto (Tipo: numérico)
+# 
+# ### store_final
+# - **nome_loja**: Nome da loja (Tipo: character)
+# - **regiao**: Região onde a loja está localizada (Tipo: character)
+# - **diretoria**: Diretoria responsável pela loja (Tipo: character)
+# - **data_inauguracao**: Data de inauguração da loja (Tipo: character)
+# 
+# ### target_store_final
+# - **month**: Mês da meta de vendas (Tipo: character)
+# - **store_id**: Código identificador da loja (Tipo: character)
+# - **sales_target**: Meta de vendas para a loja (Tipo: numérico)
+# 
+# ### sku_status_dataset
+# - **cod_prod**: Código identificador do produto (Tipo: numérico)
+# - **data_inicio**: Data de início da validade do status do produto (Tipo: character)
+# - **data_fim**: Data de fim da validade do status do produto (Tipo: character)
+# 
+# ### targets_salesperson_final
+# - **id_employee**: Código identificador do funcionário (Tipo: numérico)
+# - **sales_target**: Meta de vendas para o funcionário (Tipo: numérico)
+# - **month**: Mês da meta de vendas (Tipo: character)
+# 
+# ### sku_price
+# - **cod_prod**: Código identificador do produto (Tipo: numérico)
+# - **data_inicio**: Data de início da validade do preço do produto (Tipo: character)
+# - **data_fim**: Data de fim da validade do preço do produto (Tipo: character)
+# - **preco**: Preço do produto (Tipo: numérico)
+# 
+# ### sku_dataset
+# - **cod_prod**: Código identificador do produto (Tipo: numérico)
+# - **nome_abrev**: Nome abreviado do produto (Tipo: character)
+# - **nome_completo**: Nome completo do produto (Tipo: character)
+# - **descricao**: Descrição do produto (Tipo: character)
+# - **categoria**: Categoria do produto (Tipo: character)
+# - **sub_categoria**: Subcategoria do produto (Tipo: character)
+# - **marca**: Marca do produto (Tipo: character)
+# - **conteudo_valor**: Valor do conteúdo do produto (Tipo: character)
+# - **conteudo_medida**: Medida do conteúdo do produto (Tipo: character)
+# 
+# ### sku_cost
+# - **cod_prod**: Código identificador do produto (Tipo: numérico)
+# - **data_inicio**: Data de início da validade do custo do produto (Tipo: character)
+# - **data_fim**: Data de fim da validade do custo do produto (Tipo: character)
+# - **custo**: Custo do produto (Tipo: numérico)
+# 
+# ### employee_final
+# - **id_employee**: Código identificador do funcionário (Tipo: numérico)
+# - **name**: Nome do funcionário (Tipo: character)
+# - **surname**: Sobrenome do funcionário (Tipo: character)
+# - **cpf**: CPF do funcionário (Tipo: character)
+# - **status**: Status do funcionário (ativo/inativo) (Tipo: character)
+# - **role**: Função/cargo do funcionário (Tipo: character)
+# - **initial_date**: Data de início do contrato do funcionário (Tipo: character)
+# - **end_date**: Data de término do contrato do funcionário (Tipo: character)
+# - **store_id**: Código identificador da loja onde o funcionário trabalha (Tipo: character)
+```
+
+# Análise Univariada
+
+## Visualização das distribuições
+
+```{r}
+plot_histograms <- function(df, df_name) {
+  df <- df %>% drop_na()  
+  
+  numeric_cols <- sapply(df, is.numeric)  
+  df_numeric <- df[, numeric_cols]        
+  
+  for (col in names(df_numeric)) {
+    p <- ggplot(df, aes_string(col)) +
+      geom_histogram(fill = "blue", color = "black", binwidth = 30) +
+      labs(title = paste("Histograma de", col, "em", df_name),
+           x = col,
+           y = "Frequencia") +
+      theme_minimal()
+    
+    print(p)
+  }
+}
+plot_histograms(ano_2020, "ano_2020")
+plot_histograms(employee_final, "employee_final")
+plot_histograms(store_final, "store_final")
+plot_histograms(sku_cost, "sku_cost")
+plot_histograms(sku_dataset, "sku_dataset")
+plot_histograms(sku_price, "sku_price")
+plot_histograms(sku_status_dataset, "sku_status_dataset")
+plot_histograms(target_store_final, "target_store_final")
+plot_histograms(targets_salesperson_final, "target_salesperson_final")
+
+```
+
+## Identificação de Outliers
+
+- A partir dos histogramas gerados, vamos fazer as análises de "quantidade" em "ano_2022", "custo" em "sku_cost", price em "sku_price" e sales_target em "target_store_final"
+."quantidade" em "ano_2022": Neste histograma, pode-se notar que a quantidade de produtos vendidos não costuma superar 6 por venda, uma vez que a frequencia com que vendas acima de 6 produtos ocorre é muito menor. Então, os valores acima de 6 são outliers.
+."custo" em "sku_cost": Neste histograma, pode-se notar que o custo dos produtos geralmente é menor que 100, uma vez que a frequencia com que produtos com custo acima de 100 aparecem é muito menor. Então, os valores acima de 100 são outliers.
+.price em "sku_price": Neste histograma, pode-se notar que o preço dos produtos geralmente é menor que 200, uma vez que a frequencia com que produtos com preço acima de 200 aparecem é muito menor. Então, os valores acima de 200 são outliers.
+.sales_target em "target_store_final": Neste histograma, pode-se notar que a distribuição dos valores segue uma distribuição normal. Então, os valores de metas de vendas muito baixos (abaixo de 10000), e muito altas(acima de 14000) são consideradas outliers.
+
+# Análise Bivariada
+
+## Visualização de relações entre variáveis
+
+```{r}
+df1 <- sku_dataset %>%
+  inner_join(sku_price, by = "cod_prod")
+
+p1 <- ggplot(df1, aes(x = preco, y = marca)) +  
+  geom_point(color = "blue") +
+  labs(title = "Dispersão entre sku_dataset e sku_price",
+       x = "preco ",
+       y = "marca") +
+  theme_minimal()
+
+print(p1)
+
+
+```
+
+## Análise de correlação
+
+
+```{r}
+plot_histograms <- function(df, df_name) {
+  df <- df %>% drop_na()  
+  
+  numeric_cols <- sapply(df, is.numeric)  
+  df_numeric <- df[, numeric_cols]        
+  
+  for (col in names(df_numeric)) {
+    p <- ggplot(df, aes_string(col)) +
+      geom_histogram(fill = "blue", color = "black") +
+      labs(title = paste("Histograma de", col, "em", df_name),
+           x = col,
+           y = "Frequencia") +
+      theme_minimal()
+    
+    print(p)
+  }
+}
+plot_histograms(ano_2020, "ano_2020")
+plot_histograms(employee_final, "employee_final")
+plot_histograms(store_final, "store_final")
+plot_histograms(sku_cost, "sku_cost")
+plot_histograms(sku_dataset, "sku_dataset")
+plot_histograms(sku_price, "sku_price")
+plot_histograms(sku_status_dataset, "sku_status_dataset")
+plot_histograms(target_store_final, "target_store_final")
+plot_histograms(targets_salesperson_final, "target_salesperson_final")
+
+```
+
+## Identificação de Outliers
+
+- A partir dos histogramas gerados, vamos fazer as análises de "quantidade" em "ano_2022", "custo" em "sku_cost", price em "sku_price" e sales_target em "target_store_final"
+."quantidade" em "ano_2022": Neste histograma, pode-se notar que a quantidade de produtos vendidos não costuma superar 6 por venda, uma vez que a frequencia com que vendas acima de 6 produtos ocorre é muito menor. Então, os valores acima de 6 são outliers.
+."custo" em "sku_cost": Neste histograma, pode-se notar que o custo dos produtos geralmente é menor que 100, uma vez que a frequencia com que produtos com custo acima de 100 aparecem é muito menor. Então, os valores acima de 100 são outliers.
+.price em "sku_price": Neste histograma, pode-se notar que o preço dos produtos geralmente é menor que 200, uma vez que a frequencia com que produtos com preço acima de 200 aparecem é muito menor. Então, os valores acima de 200 são outliers.
+.sales_target em "target_store_final": Neste histograma, pode-se notar que a distribuição dos valores segue uma distribuição normal. Então, os valores de metas de vendas muito baixos (abaixo de 10000), e muito altas(acima de 14000) são consideradas outliers.
+
+# Análise Bivariada
+
+## Visualização de relações entre variáveis
+
+```{r}
+
+numeric_cols <- ano_2020 %>% select(where(is.numeric))
+
+cor_matrix <- cor(numeric_cols, use = "complete.obs", method = "pearson")
+
+corrplot(cor_matrix, method = "circle", type = "upper", tl.col = "black", tl.srt = 45)
+```
+
+# Análise Multivariada
+
+## Análise de componentes principais(PCA)
+
+```{r}
+plot_histograms <- function(df, df_name) {
+  df <- df %>% drop_na()  
+  
+  numeric_cols <- sapply(df, is.numeric)  
+  df_numeric <- df[, numeric_cols]        
+  
+  for (col in names(df_numeric)) {
+    p <- ggplot(df, aes_string(col)) +
+      geom_histogram(fill = "blue", color = "black") +
+      labs(title = paste("Histograma de", col, "em", df_name),
+           x = col,
+           y = "Frequencia") +
+      theme_minimal()
+    
+    print(p)
+  }
+}
+plot_histograms(ano_2020, "ano_2020")
+plot_histograms(employee_final, "employee_final")
+plot_histograms(store_final, "store_final")
+plot_histograms(sku_cost, "sku_cost")
+plot_histograms(sku_dataset, "sku_dataset")
+plot_histograms(sku_price, "sku_price")
+plot_histograms(sku_status_dataset, "sku_status_dataset")
+plot_histograms(target_store_final, "target_store_final")
+plot_histograms(targets_salesperson_final, "target_salesperson_final")
+
+```
+
+## Identificação de Outliers
+
+- A partir dos histogramas gerados, vamos fazer as análises de "quantidade" em "ano_2022", "custo" em "sku_cost", price em "sku_price" e sales_target em "target_store_final"
+."quantidade" em "ano_2022": Neste histograma, pode-se notar que a quantidade de produtos vendidos não costuma superar 6 por venda, uma vez que a frequencia com que vendas acima de 6 produtos ocorre é muito menor. Então, os valores acima de 6 são outliers.
+."custo" em "sku_cost": Neste histograma, pode-se notar que o custo dos produtos geralmente é menor que 100, uma vez que a frequencia com que produtos com custo acima de 100 aparecem é muito menor. Então, os valores acima de 100 são outliers.
+.price em "sku_price": Neste histograma, pode-se notar que o preço dos produtos geralmente é menor que 200, uma vez que a frequencia com que produtos com preço acima de 200 aparecem é muito menor. Então, os valores acima de 200 são outliers.
+.sales_target em "target_store_final": Neste histograma, pode-se notar que a distribuição dos valores segue uma distribuição normal. Então, os valores de metas de vendas muito baixos (abaixo de 10000), e muito altas(acima de 14000) são consideradas outliers.
+
+# Análise Bivariada
+
+## Visualização de relações entre variáveis
+
+```{r}
+
+#df_numeric <- ano_2020 %>% select(where(is.numeric))
+
+#df_numeric <- na.omit(df_numeric)
+
+#pca_result <- PCA(df_numeric, scale.unit = TRUE, ncp = 5, graph = FALSE)
+
+
+#fviz_eig(pca_result)
+
+
+#fviz_pca_ind(pca_result, 
+#             col.ind = "cos2", 
+#             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+#             repel = TRUE) 
+#fviz_pca_var(pca_result, 
+#             col.var = "contrib", 
+#             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+#             repel = TRUE) 
+
+
+#fviz_pca_biplot(pca_result, repel = TRUE,
+#                col.var = "blue", 
+#                col.ind = "cos2") 
+```
+
+# Conclusão e Discussão
+
+- Por fim, pode-se dizer que esta análise foi muito produtiva para o conhecimento acerca dos dados que estão sendo trabalhados, mas principalmente para o aprendizado que envolve todo o processo de análise exploratória. Mesmo assim, neste cenário foram expostos insights importantes relacionados aos preços dos produtos e às marcas destes, dentre outros aspectos que serão muito importantes posteriormente.
+
